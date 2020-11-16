@@ -50,15 +50,22 @@ function drawCircle(x,y,rad,color){
     ctx.closePath();
     ctx.fill()
 };
-//Draw TextScore
+
 function drawTextscore(x, y, color, text){
+    /*
+        renders text score for game
+        :param x: x coordinate of text score
+        :param y: y coordinate of text score
+
+        :return: if there is return 
+    */
     ctx.fillStyle = color;
     ctx.font = "45px fantasy"; 
     ctx.fillText(text, x, y);
 }
 //Draws a straight line down the middle
 function drawNet(){
-        drawPaddle(net.x, net.y, net.width, net.height, net.color); 
+    drawPaddle(net.x, net.y, net.width, net.height, net.color); 
 };
 //draw/Render all objects onto canvas
 function render(){
@@ -92,7 +99,7 @@ function reset(){
 // so we start the ball moving right, vice versa
     ball.velocityX *= -1
 }
-function startBall(){
+function updateBallPos(){
     ball.x += ball.velocityX; //Increments the ball x,y direction by 5 or by velocityX/Y; This will send the ball towards the bottom right 
     ball.y += ball.velocityY; //Think of bottom right as our +X, +Y 
 }
@@ -125,12 +132,12 @@ function ballPaddlecollision(){
 }
 //Without the aiDifficulty var, the aiPaddle will always be in the center of the ball, the aiPaddle will trail a little behind
 //This can give the user a chance to score!
-function aiDifficulty(){
+function updateAiDifficulty(){
     let aiDifficulty = 0.1;
     aiPad.y += (ball.y - (aiPad.y + aiPad.height/2)) * aiDifficulty;
 }
 //add 1 point to whoever scored the ball pass the other side!
-function whoScored(){
+function checkWhoScored(){
     if (ball.x - ball.radius < 0){ //ai scores
         aiPad.score++;
         reset();
@@ -154,11 +161,11 @@ function movePaddle(evt){
 //ball has passed the canvas which applies a score to either side
 //once whoScored() is called, reset() will call and we startBall() again with ball facing opposite of winning side VelocityX *= -1
 function update(){
-    startBall();
-    aiDifficulty();
+    updateBallPos();
+    updateAiDifficulty();
     ballCanvascollision();
     ballPaddlecollision();
-    whoScored();
+    checkWhoScored();
 }
 
 function game(){
