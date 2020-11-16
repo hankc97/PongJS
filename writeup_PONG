@@ -1,0 +1,33 @@
+1) Design space and pong pieces (HTML)
+    a) Use Canvas to create rectangular box
+    b) Use Canvas to design 2 "paddle"s 
+    c) design ball shap 
+
+2) Design Point System
+    a) Player 1 and Player 2 will start with 0|0
+    b) Player score only increases when Player win
+        a1) Create a Player (win function)
+
+3) Player win (function)
+    a) If ball touches left side (behind "paddle") Player 2++ 
+    b) If ball touches left side (behind "paddle") Player 1++ 
+
+4) Player movement
+    a) Player moves the "paddle" by following your arrow in the rectangular box
+
+5) AI movement
+    a) Tracks the ball (unknown yet how to get best movement)
+
+6) Ball movement
+    a) Collision: When Ball touches "paddle" there are 3 directions
+        a1) top incoming at 45* angle
+        a2) straight
+        a3) bottom incoming at 45* angle
+    b) Collision: Ball touches Bottom Canvas there are 2 directions
+        b1) angled at degrees (unknown)
+        b2) straight
+        b3) There is no third as it only goes forward
+    c) Collision: Ball touches Top Canvas there are 2 directions
+
+7) HTML / JS
+    a) reference HTML classes to detect ball and paddle shapes and rectangular space using JS
