@@ -1,6 +1,6 @@
 // get canvas properties 
 const cvs = document.getElementById("PongTable");
-const ctx = cvs.getContext("2d");
+var ctx = cvs.getContext("2d");
 
 // Create User Paddle
 // x, y coordinates are used to start where the paddle will be drawn
