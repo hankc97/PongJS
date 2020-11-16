@@ -1,41 +1,33 @@
 // get canvas properties 
-const cvs = document.getElementById("PongTable");
+var cvs = document.getElementById("PongTable");
 var ctx = cvs.getContext("2d");
 
-// Create User Paddle
-// x, y coordinates are used to start where the paddle will be drawn
-//width, height is the size of paddle itself
-const userPad = {
-    x : 0, 
-    y : cvs.height/2 - 100/2, //drawn starting from half of canvas height - half of paddle height == y
-    width : 10, 
-    height : 100, 
-    color : "WHITE",
-    score : 0  //User score starts at 0
+//creates paddles with function as there is only one variable that is different (x)
+function createPaddle(x){
+    return {
+        x:x,
+        y:cvs.height/2 - 100/2,
+        width:10,
+        height:100,
+        color:"WHITE",
+        score: 0
+    }
 }
-//create aipaddle 
-const aiPad = {
-    x : cvs.width - userPad.width, //Drawn on the right side of board, must subtract from own width so its not drawn starting from edge of canvas
-    y : cvs.height / 2 - 100 / 2, //same idea as userPad 
-    width : 10,
-    height : 100,
-    color : "WHITE",
-    score : 0
-}
+var userPad = createPaddle(0);
+var aiPad = createPaddle(cvs.width - userPad.width)
 
 //Create net 
-const net = {
+var net = {
     x : cvs.width / 2 - 1, //drawn in middle of canvas width len, subtract 1, as each dash is a mini rectangle
     y : 0,
     width : 2,
-    height : 10,
+    height : cvs.height,
     color : "WHITE"
 }
-
 //Ball start at middle of canvas relative to x and y
 //Include starting speed == 5, then increase in velocity in x, y direction due to collision
 //velocity = direction * speed
-const ball = { 
+var ball = { 
     x : cvs.width / 2,
     y : cvs.height / 2,
     speed : 5,
@@ -46,7 +38,7 @@ const ball = {
 }
 //Draw Rectangle takes in all 5 properties above
 //x,y starting point of draw; w,h actual size of rect; 
-function drawRectangle(x,y,w,h,color){
+function drawPaddle(x,y,w,h,color){
     ctx.fillStyle = color;
     ctx.fillRect(x,y,w,h);
 }
@@ -64,18 +56,17 @@ function drawTextscore(x, y, color, text){
     ctx.font = "45px fantasy"; 
     ctx.fillText(text, x, y);
 }
-//Draw the net using rectangles incremented every 15 pixels
+//Draws a straight line down the middle
 function drawNet(){
-    for (let i = 0; i <= cvs.height; i+=15){ // Instead of drawing each rectangle we can create a loop to draw at every 15th pixel for the total length of the canvas height
-        drawRectangle(net.x, net.y + i, net.width, net.height, net.color); // Calls drawRect as net is just a line of smaller rectangles
-    }
+        drawPaddle(net.x, net.y, net.width, net.height, net.color); 
 };
+//draw/Render all objects onto canvas
 function render(){
-    drawRectangle(0, 0, cvs.width, cvs.height, "BLACK");
+    drawPaddle(0, 0, cvs.width, cvs.height, "BLACK");
     drawTextscore(cvs.width/4, cvs.height/5, "WHITE", userPad.score); //score for user
     drawTextscore(2*cvs.width/4 + 125, cvs.height/5, "WHITE", aiPad.score); //score for aiPad
-    drawRectangle(userPad.x, userPad.y, userPad.width, userPad.height, userPad.color); //draw rectangle paddle for user
-    drawRectangle(aiPad.x, aiPad.y, aiPad.width, aiPad.height, aiPad.color); //draw rectangle paddle for AI
+    drawPaddle(userPad.x, userPad.y, userPad.width, userPad.height, userPad.color); //draw rectangle paddle for user
+    drawPaddle(aiPad.x, aiPad.y, aiPad.width, aiPad.height, aiPad.color); //draw rectangle paddle for AI
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
     drawNet();
 }
@@ -96,29 +87,25 @@ function collision(ball, paddle){
 function reset(){
     ball.x = cvs.width/2;
     ball.y = cvs.height/2;
-
     ball.speed = 5;
 // we only need to change the velocityX direction, i.e if user loses it means initially the ball was moving left 
 // so we start the ball moving right, vice versa
-    ball.velocityX = -ball.velocityX 
+    ball.velocityX *= -1
 }
-function update(){
+function startBall(){
     ball.x += ball.velocityX; //Increments the ball x,y direction by 5 or by velocityX/Y; This will send the ball towards the bottom right 
     ball.y += ball.velocityY; //Think of bottom right as our +X, +Y 
-
-    //Without the aiDifficulty var, the aiPaddle will always be in the center of the ball, the aiPaddle will trail a little behind
-    //This can give the user a chance to score!
-    let aiDifficulty = 0.1;
-    aiPad.y += (ball.y - (aiPad.y + aiPad.height/2)) * aiDifficulty;
-
-    //if bottom of ball (bally + ballrad) > heightofcanvas or if top of ball(bally - ballradius) < 0(top of canvas) 
-    //change of Y direction
+}
+//if bottom of ball (bally + ballrad) > heightofcanvas or if top of ball(bally - ballradius) < 0(top of canvas) 
+//change of Y direction
+function ballCanvascollision(){
     if(ball.y + ball.radius > cvs.height || ball.y - ball.radius < 0){ 
         ball.velocityY = -(ball.velocityY); 
     }
+}
+function ballPaddlecollision(){
     //checks which paddle was hit ? userPaddle or aiPaddle
     let paddlehit = (ball.x < cvs.width/2) ? userPad : aiPad; 
-
     //if collision return True, its a collision on the paddle and X direction according to (speed, angle, direction and velocity)
     if(collision(ball, paddlehit)){
         let collidePoint = ball.y - (paddlehit.y + paddlehit.height/2);
@@ -135,6 +122,15 @@ function update(){
         //increase ball speed everytime it hits the paddle 
         ball.speed += 0.5;
     }
+}
+//Without the aiDifficulty var, the aiPaddle will always be in the center of the ball, the aiPaddle will trail a little behind
+//This can give the user a chance to score!
+function aiDifficulty(){
+    let aiDifficulty = 0.1;
+    aiPad.y += (ball.y - (aiPad.y + aiPad.height/2)) * aiDifficulty;
+}
+//add 1 point to whoever scored the ball pass the other side!
+function whoScored(){
     if (ball.x - ball.radius < 0){ //ai scores
         aiPad.score++;
         reset();
@@ -150,6 +146,21 @@ function movePaddle(evt){
     let rect = cvs.getBoundingClientRect();
     userPad.y = evt.clientY - rect.top - userPad.height/2;
 }
+//Our game will constantly check and call the update functions to see if ...
+//VelocityX,Y needs to be changed
+//aiDifficulty change
+//ball has collided into Canvas
+//ball has collided into Paddle
+//ball has passed the canvas which applies a score to either side
+//once whoScored() is called, reset() will call and we startBall() again with ball facing opposite of winning side VelocityX *= -1
+function update(){
+    startBall();
+    aiDifficulty();
+    ballCanvascollision();
+    ballPaddlecollision();
+    whoScored();
+}
+
 function game(){
     update();
     render();
