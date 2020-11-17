@@ -31,7 +31,7 @@ var ball = {
     x : cvs.width / 2,
     y : cvs.height / 2,
     speed : 5,
-    velocityX : 5, 
+    velocityX : 5,
     velocityY: 5,
     radius : 10,
     color : "WHITE"
@@ -95,8 +95,6 @@ function reset(){
     ball.x = cvs.width/2;
     ball.y = cvs.height/2;
     ball.speed = 5;
-// we only need to change the velocityX direction, i.e if user loses it means initially the ball was moving left 
-// so we start the ball moving right, vice versa
     ball.velocityX *= -1
 }
 function updateBallPos(){
