@@ -5,10 +5,18 @@
         <title>Pong</title>
     </head>
     <body>
-        <canvas id = "PongTable" width = "600" height = "400"></canvas>
-        <script src = "pongObjects_Methods.js"></script>
+        <canvas id = "Pong" width = "600" height = "400"></canvas>
+        <script src = "PongOOP.js"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function(event) {
+                var cvs = document.getElementById("Pong");
+                var pong = new Pong(aiDifficulty = 0.1, ballSpeed = 5);
+                cvs.addEventListener("mousemove", function(evt){
+                    let rect = cvs.getBoundingClientRect();
+                    pong._user._y = evt.clientY - rect.top - (pong._user._height/2);
+                })
+                pong.startGame();
+                });
+        </script>
     </body>
 </html>
-
-
-
