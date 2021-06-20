@@ -1,175 +1,190 @@
-// get canvas properties 
-var cvs = document.getElementById("PongTable");
-var ctx = cvs.getContext("2d");
+class Pong { 
+    constructor(aiDifficulty, ballSpeed){
+        this._cvs = document.getElementById("Pong");
+        this._ctx = this._cvs.getContext("2d");
+        this._gameLoop = null;
+        this._aiDifficulty = aiDifficulty
+        this._ballSpeed = ballSpeed;
+        //Difference between two Paddles is X position on Canvas
+        this._user = new Paddle(0); 
+        this._ai = new Paddle(this._cvs.width - this._user._width);
+        //Speed === 5, shown in HTML pong class variable 
+        this._ball = new Ball(this._ballSpeed); 
+        //Difference between text display is X position on Canvas
+        this._userScore = new Score((this._cvs.width/4));
+        this._aiScore = new Score((2*(this._cvs.width/4) + 125));
+    }
 
-//creates paddles with function as there is only one variable that is different (x)
-function createPaddle(x){
-    return {
-        x:x,
-        y:cvs.height/2 - 100/2,
-        width:10,
-        height:100,
-        color:"WHITE",
-        score: 0
+    drawCanvas(){
+        this._ctx.fillStyle = "BLACK";
+        this._ctx.fillRect(0,0,this._cvs.width, this._cvs.height);
+    }
+
+    drawNet(){
+        this._ctx.fillStyle = "WHITE";
+        this._ctx.fillRect(299, 0, 2, 400);
+    }
+
+    aiTracking() {
+        this._ai._y += (this._ball._y - (this._ai._y + (this._ai._height/2))) * this._aiDifficulty;
+    }
+
+    ballPaddleCollisionLogic() {
+        let person = (this._ball._x < (this._cvs.width/2)) ? this._user : this._ai; 
+
+        if (this.checkBallHitPaddle(this._ball, person)){
+            let collidePoint = this._ball._y - (person._y + (person._height/2));
+            collidePoint /= (person._height/2);
+            let angleRad = collidePoint * Math.PI/4;
+            //checks bounce direction user === right bounce(1), ai === left bounce(-1)
+            let direction = (person === this._user) ? 1 : -1;
+            //changing direction based on paddle and changing angle
+            this._ball._xVelocity = direction * this._ballSpeed * Math.cos(angleRad);
+            this._ball._yVelocity = this._ballSpeed * Math.sin(angleRad);
+            //increase ball speed everytime it hits the paddle (non static gameplay)
+            this._ballSpeed += 0.5;
+        }
+    }
+
+    checkBallHitPaddle(ball, person){
+        var ballRadius = ball._radius;
+
+        let bTop = ball._y - ballRadius;
+        let bBottom = ball._y + ballRadius;
+        let bLeft = ball._x - ballRadius;
+        let bRight = ball._x + ballRadius;
+
+        let pTop = person._y;
+        let pBottom = person._y + person._height;
+        let pLeft = person._x;
+        let pRight = person._x + person._width;
+
+        return bRight > pLeft && bBottom > pTop && bLeft < pRight && bTop < pBottom;
+    }
+
+    checkWhoScored(){
+        if (this._ball._x - this._ball._radius < 0){
+            this._aiScore._score++
+            this.reset();
+        }
+        else if (this._ball._x + this._ball._radius > this._cvs.width){
+            this._userScore._score++;
+            this.reset();
+        }
+    }
+
+    reset(){
+        this._ball._x = this._cvs.width/2;
+        this._ball._y = this._cvs.height/2;
+        this._ballSpeed = 5;
+        this._ball._xVelocity *= -1
+    }
+
+    render(){
+        this.drawCanvas();
+        this.drawNet();
+        this._ai.drawPaddle()
+        this._user.drawPaddle();
+        this._ball.drawBall();
+        this._userScore.drawTextScore();
+        this._aiScore.drawTextScore();
+    }
+
+    update(){
+        this._ball.updateBallPos();
+        this._ball.ballCollisionOnCanvas();
+        this.aiTracking();
+        this.ballPaddleCollisionLogic();
+        this.checkWhoScored();
+    }
+
+    runLoop(){
+        this.update();
+        this.render();
+    }
+
+    startGame(){
+        /*
+            calls from index.html using the pong class variable, starts game Loop
+
+            :param this.gameLoop: Loops at framerate 1000/50 calls runLoop()
+            :param function(self): takes in (self) param, where we will call (this) into the function
+            :param return function(){self.runLoop()}: Without the return function our setInterval(this.runLoop,) will not execute correctly 
+            as it is running an undefined function.
+        */
+        this.gameLoopId = setInterval(
+            (function(self) {
+                return function() {
+                    self.runLoop();
+                }
+            })(this),(1000/50));
     }
 }
-var userPad = createPaddle(0);
-var aiPad = createPaddle(cvs.width - userPad.width)
 
-//Create net 
-var net = {
-    x : cvs.width / 2 - 1, //drawn in middle of canvas width len, subtract 1, as each dash is a mini rectangle
-    y : 0,
-    width : 2,
-    height : cvs.height,
-    color : "WHITE"
-}
-//Ball start at middle of canvas relative to x and y
-//Include starting speed == 5, then increase in velocity in x, y direction due to collision
-//velocity = direction * speed
-var ball = { 
-    x : cvs.width / 2,
-    y : cvs.height / 2,
-    speed : 5,
-    velocityX : 5, 
-    velocityY: 5,
-    radius : 10,
-    color : "WHITE"
-}
-//Draw Rectangle takes in all 5 properties above
-//x,y starting point of draw; w,h actual size of rect; 
-function drawPaddle(x,y,w,h,color){
-    ctx.fillStyle = color;
-    ctx.fillRect(x,y,w,h);
-}
-//Draw Circle
-function drawCircle(x,y,rad,color){
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x,y,rad,0,Math.PI*2, false);
-    ctx.closePath();
-    ctx.fill()
-};
+class Paddle {
+    constructor (x, y = 150, width = 10, height = 100, color = "WHITE"){
+        this._cvs = document.getElementById("Pong");
+        this._ctx = this._cvs.getContext("2d");
+        this._x = x;
+        this._y = y;
+        this._width = width;
+        this._height = height;
+        this._color = color;
+    }
 
-function drawTextscore(x, y, color, text){
-    /*
-        renders text score for game
-        :param x: x coordinate of text score
-        :param y: y coordinate of text score
-
-        :return: if there is return 
-    */
-    ctx.fillStyle = color;
-    ctx.font = "45px fantasy"; 
-    ctx.fillText(text, x, y);
-}
-//Draws a straight line down the middle
-function drawNet(){
-    drawPaddle(net.x, net.y, net.width, net.height, net.color); 
-};
-//draw/Render all objects onto canvas
-function render(){
-    drawPaddle(0, 0, cvs.width, cvs.height, "BLACK");
-    drawTextscore(cvs.width/4, cvs.height/5, "WHITE", userPad.score); //score for user
-    drawTextscore(2*cvs.width/4 + 125, cvs.height/5, "WHITE", aiPad.score); //score for aiPad
-    drawPaddle(userPad.x, userPad.y, userPad.width, userPad.height, userPad.color); //draw rectangle paddle for user
-    drawPaddle(aiPad.x, aiPad.y, aiPad.width, aiPad.height, aiPad.color); //draw rectangle paddle for AI
-    drawCircle(ball.x, ball.y, ball.radius, ball.color);
-    drawNet();
-}
-//change of X direction
-function collision(ball, paddle){
-    ball.top = ball.y - ball.radius;
-    ball.bottom = ball.y + ball.radius;
-    ball.left = ball.x - ball.radius;
-    ball.right = ball.x + ball.radius; //4 points of contact is measured at the top, bottom, left, right (there is no contact at an angle)
-
-    paddle.top = paddle.y
-    paddle.bottom = paddle.y + paddle.height;
-    paddle.left = paddle.x;
-    paddle.right = paddle.x + paddle.width;
-
-    return ball.right > paddle.left && ball.bottom > paddle.top && ball.left < paddle.right && ball.top < paddle.bottom; //return true is all conditions are met
-}
-function reset(){
-    ball.x = cvs.width/2;
-    ball.y = cvs.height/2;
-    ball.speed = 5;
-// we only need to change the velocityX direction, i.e if user loses it means initially the ball was moving left 
-// so we start the ball moving right, vice versa
-    ball.velocityX *= -1
-}
-function updateBallPos(){
-    ball.x += ball.velocityX; //Increments the ball x,y direction by 5 or by velocityX/Y; This will send the ball towards the bottom right 
-    ball.y += ball.velocityY; //Think of bottom right as our +X, +Y 
-}
-//if bottom of ball (bally + ballrad) > heightofcanvas or if top of ball(bally - ballradius) < 0(top of canvas) 
-//change of Y direction
-function ballCanvascollision(){
-    if(ball.y + ball.radius > cvs.height || ball.y - ball.radius < 0){ 
-        ball.velocityY = -(ball.velocityY); 
+    drawPaddle(){
+        this._ctx.fillStyle = this._color;
+        this._ctx.fillRect(this._x,this._y,this._width,this._height)
     }
 }
-function ballPaddlecollision(){
-    //checks which paddle was hit ? userPaddle or aiPaddle
-    let paddlehit = (ball.x < cvs.width/2) ? userPad : aiPad; 
-    //if collision return True, its a collision on the paddle and X direction according to (speed, angle, direction and velocity)
-    if(collision(ball, paddlehit)){
-        let collidePoint = ball.y - (paddlehit.y + paddlehit.height/2);
 
-        collidePoint = collidePoint/(paddlehit.height/2);
+class Ball {
+    constructor (speed, x = 300, y = 200, xVelocity = 5, yVelocity = 5, radius = 10, color = "WHITE"){
+        this._cvs = document.getElementById("Pong");
+        this._ctx = this._cvs.getContext("2d");
+        this._x = x;
+        this._y = y;
+        this._speed = speed;
+        this._xVelocity = xVelocity;
+        this._yVelocity = yVelocity;
+        this._radius = radius;
+        this._color = color;
+    }
 
-        let angleRad = collidePoint * Math.PI/4;
+    drawBall(){
+        this._ctx.fillStyle = this._color;
+        this._ctx.beginPath();
+        this._ctx.arc(this._x, this._y, this._radius, 0, (Math.PI * 2), false);
+        this._ctx.closePath();
+        this._ctx.fill();
+    }
 
-        let direction = (ball.x < cvs.width/2) ? 1 : -1;
+    updateBallPos(){
+        this._x += this._xVelocity;
+        this._y += this._yVelocity;
+    }
 
-        ball.velocityX = direction * ball.speed * Math.cos(angleRad);
-        ball.velocityY = ball.speed * Math.sin(angleRad);
-
-        //increase ball speed everytime it hits the paddle 
-        ball.speed += 0.5;
+    ballCollisionOnCanvas(){
+        if (this._y + this._radius > this._cvs.height || this._y - this._radius < 0){
+            this._yVelocity *= -1;
+        }
     }
 }
-//Without the aiDifficulty var, the aiPaddle will always be in the center of the ball, the aiPaddle will trail a little behind
-//This can give the user a chance to score!
-function updateAiDifficulty(){
-    let aiDifficulty = 0.1;
-    aiPad.y += (ball.y - (aiPad.y + aiPad.height/2)) * aiDifficulty;
-}
-//add 1 point to whoever scored the ball pass the other side!
-function checkWhoScored(){
-    if (ball.x - ball.radius < 0){ //ai scores
-        aiPad.score++;
-        reset();
 
-    } else if (ball.x + ball.radius > cvs.width){ //user scores
-        userPad.score++;
-        reset();
+class Score {
+    constructor (x, y = 80, color = "WHITE", font = "45px fantasy", score = 0){
+        this._cvs = document.getElementById("Pong");
+        this._ctx = this._cvs.getContext("2d");
+        this._x = x;
+        this._y = y;
+        this._color = color;
+        this._font = font;
+        this._score = score;
+    }
+
+    drawTextScore(){
+        this._ctx.fillStyle = this._color;
+        this._ctx.font = this._font;
+        this._ctx.fillText(this._score, this._x, this._y);
     }
 }
-//Controling User Paddle using Mouse at the center of paddle
-cvs.addEventListener("mousemove", movePaddle);
-function movePaddle(evt){
-    let rect = cvs.getBoundingClientRect();
-    userPad.y = evt.clientY - rect.top - userPad.height/2;
-}
-//Our game will constantly check and call the update functions to see if ...
-//VelocityX,Y needs to be changed
-//aiDifficulty change
-//ball has collided into Canvas
-//ball has collided into Paddle
-//ball has passed the canvas which applies a score to either side
-//once whoScored() is called, reset() will call and we startBall() again with ball facing opposite of winning side VelocityX *= -1
-function update(){
-    updateBallPos();
-    updateAiDifficulty();
-    ballCanvascollision();
-    ballPaddlecollision();
-    checkWhoScored();
-}
-
-function game(){
-    update();
-    render();
-}
-setInterval(game, 1000/50); // renders game 50 times every 1000 millisecond or 1 second
